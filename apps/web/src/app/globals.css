@@ -1,0 +1,25 @@
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700;800&display=swap");
+@import "tailwindcss";
+
+:root {
+  --background: #f5f2e9;
+  --foreground: #1d1f21;
+  --paper: #fffef8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background:
+    radial-gradient(circle at 10% 10%, #fef3c7 0%, transparent 45%),
+    radial-gradient(circle at 90% 20%, #dbeafe 0%, transparent 40%),
+    var(--background);
+  color: var(--foreground);
+  font-family: "M PLUS 1p", var(--font-geist-sans), sans-serif;
+}
