@@ -1,0 +1,375 @@
+{
+  "scannedAt": "2026-05-28T09:22:37.012Z",
+  "summary": {
+    "total": 33,
+    "clean": 32,
+    "needsReview": 1,
+    "totalIssues": 11
+  },
+  "components": [
+    {
+      "name": "sandbox",
+      "path": "src/components/sandbox",
+      "issues": [
+        {
+          "type": "LARGE_FILE",
+          "severity": "HIGH",
+          "file": "src/components/sandbox/manual-matching/manual-matching-setup-panel.tsx",
+          "detail": "806行（上限500行）"
+        },
+        {
+          "type": "LARGE_FILE",
+          "severity": "MEDIUM",
+          "file": "src/components/sandbox/media-rating-shared-tabs/media-rating-tabs-store.ts",
+          "detail": "513行（上限500行）"
+        },
+        {
+          "type": "LARGE_FILE",
+          "severity": "MEDIUM",
+          "file": "src/components/sandbox/skills/skills-panel-store.ts",
+          "detail": "551行（上限500行）"
+        },
+        {
+          "type": "LARGE_FILE",
+          "severity": "MEDIUM",
+          "file": "src/components/sandbox/skills-shared-tabs/skills-tabs-store.ts",
+          "detail": "512行（上限500行）"
+        },
+        {
+          "type": "LARGE_FILE",
+          "severity": "MEDIUM",
+          "file": "src/components/sandbox/user-profile-structure/user-profile-structure.view.tsx",
+          "detail": "697行（上限500行）"
+        },
+        {
+          "type": "LARGE_FILE",
+          "severity": "MEDIUM",
+          "file": "src/components/sandbox/values/sandbox-values-display-panel.tsx",
+          "detail": "546行（上限500行）"
+        },
+        {
+          "type": "LARGE_FILE",
+          "severity": "MEDIUM",
+          "file": "src/components/sandbox/values-edit-tabs/values-edit-tabs.constants.ts",
+          "detail": "615行（上限500行）"
+        },
+        {
+          "type": "LARGE_FILE",
+          "severity": "MEDIUM",
+          "file": "src/components/sandbox/values-edit-tabs/values-edit-tabs.container.tsx",
+          "detail": "502行（上限500行）"
+        },
+        {
+          "type": "LARGE_FILE",
+          "severity": "MEDIUM",
+          "file": "src/components/sandbox/values-edit-tabs/values-edit-tabs.view.tsx",
+          "detail": "550行（上限500行）"
+        },
+        {
+          "type": "LARGE_FILE",
+          "severity": "MEDIUM",
+          "file": "src/components/sandbox/values-shared-tabs/values-tabs-store.ts",
+          "detail": "512行（上限500行）"
+        },
+        {
+          "type": "LARGE_FILE",
+          "severity": "MEDIUM",
+          "file": "src/components/sandbox/work-shared-tabs/work-tabs-store.ts",
+          "detail": "578行（上限500行）"
+        }
+      ],
+      "priorityScore": 250,
+      "status": "needs-review",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "admin",
+      "path": "src/components/admin",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "anonymous-name-selector",
+      "path": "src/components/anonymous-name-selector",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "auth",
+      "path": "src/components/auth",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "creation-flow-return-banner",
+      "path": "src/components/creation-flow-return-banner",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T03:26:22.038Z"
+    },
+    {
+      "name": "debug-links",
+      "path": "src/components/debug-links",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T03:26:57.379Z"
+    },
+    {
+      "name": "dev",
+      "path": "src/components/dev",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "domains",
+      "path": "src/components/domains",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "etc",
+      "path": "src/components/etc",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T03:25:29.264Z"
+    },
+    {
+      "name": "home",
+      "path": "src/components/home",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T21:56:05.514Z"
+    },
+    {
+      "name": "home-trial",
+      "path": "src/components/home-trial",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T21:57:39.121Z"
+    },
+    {
+      "name": "landing-page",
+      "path": "src/components/landing-page",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "landing-page-mini",
+      "path": "src/components/landing-page-mini",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "layout",
+      "path": "src/components/layout",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T21:41:13.026Z"
+    },
+    {
+      "name": "media-rating",
+      "path": "src/components/media-rating",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "media-rating-cockpit",
+      "path": "src/components/media-rating-cockpit",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "profile-display",
+      "path": "src/components/profile-display",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "profile-list",
+      "path": "src/components/profile-list",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "public",
+      "path": "src/components/public",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T21:54:37.101Z"
+    },
+    {
+      "name": "root-account",
+      "path": "src/components/root-account",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-05-28T08:02:10.155Z"
+    },
+    {
+      "name": "root-accounts",
+      "path": "src/components/root-accounts",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-05-20T03:13:44.208Z"
+    },
+    {
+      "name": "sandbox-review-links",
+      "path": "src/components/sandbox-review-links",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "shared-tabs",
+      "path": "src/components/shared-tabs",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T21:44:53.928Z"
+    },
+    {
+      "name": "skills",
+      "path": "src/components/skills",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "trial",
+      "path": "src/components/trial",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "clean",
+      "reviewedAt": null,
+      "refactoredAt": null
+    },
+    {
+      "name": "trial-page",
+      "path": "src/components/trial-page",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T03:09:12.728Z"
+    },
+    {
+      "name": "user",
+      "path": "src/components/user",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T03:07:35.345Z"
+    },
+    {
+      "name": "values",
+      "path": "src/components/values",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T21:52:18.637Z"
+    },
+    {
+      "name": "values-display-cockpit",
+      "path": "src/components/values-display-cockpit",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T21:52:47.859Z"
+    },
+    {
+      "name": "values-edit",
+      "path": "src/components/values-edit",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T21:53:42.991Z"
+    },
+    {
+      "name": "values-edit-tabs",
+      "path": "src/components/values-edit-tabs",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T03:21:15.171Z"
+    },
+    {
+      "name": "values-shared-tabs",
+      "path": "src/components/values-shared-tabs",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T03:22:48.490Z"
+    },
+    {
+      "name": "work",
+      "path": "src/components/work",
+      "issues": [],
+      "priorityScore": 0,
+      "status": "done",
+      "reviewedAt": null,
+      "refactoredAt": "2026-04-30T03:05:27.677Z"
+    }
+  ]
+}

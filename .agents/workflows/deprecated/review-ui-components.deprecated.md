@@ -1,0 +1,28 @@
+---
+description: UIコンポーネントの網羅的レビューとボーイスカウトルール適用
+---
+
+# UI Components Review Workflow
+
+このワークフローは、`src/components/` 以下のUIレイヤー全体に対して、プロジェクトのコーディング規約（TDD、ディレクトリ構造、アクセシビリティ等）が正しく守られているかを網羅的にチェックし、軽微な問題は自動で修正（ボーイスカウトルール）します。
+
+## 対象ディレクトリ・ファイル（推奨）
+
+- `src/components/` 配下の全コンポーネントディレクトリ
+範囲が広い場合は指定されたページに関するコンポーネント郡（例：`src/components/profile-display/`）に限定して実行することも可能です。
+
+## 手順
+
+1.  **対象の抽出**: ユーザーが指定したコンポーネントディレクトリ、または `src/components/` 以下のサブディレクトリを順次対象とします。
+2.  **規約・品質チェック**: 以下の観点でコードベースを検査します。
+    - **Directory Structure**: フォルダとファイル名の一致、コロケーション原則（`.tsx`, `.logic.ts`, `.test.tsx` の分離）、`index.ts` によるBarrel Exportの徹底。
+    - **TypeScript & Immutability**: `as const` の使用、コンポーネントPropsなどの `readonly` による不変性の徹底、`any` の完全排除と `unknown` への代替状況。
+    - **Accessibility (a11y)**: UIコンポーネント用のテスト（`.test.tsx`）にて、`vitest-axe` を用いたアクセシビリティテスト(`toHaveNoViolations`)が実装されているか。コントラストやセマンティックHTMLへの配慮。
+    - **Design/UX**: Glassmorphism / Elegant テーマのトークン変数が正しく使われ、フォントサイズ（基本16px/1remベース）やコントラストチェックが実装されているか。Tailwind CSS v4への移行（`bg-gradient-to-*` -> `bg-linear-to-*`, `flex-shrink-0` -> `shrink-0`）が適用されているか。
+3.  **ボーイスカウト適用**: 未使用変数の削除、明白な型エラーの修正、軽微なリファクタリング（インポート順の整理やコメントの日本語化など）を積極的に実施します。
+4.  **レポート作成**: 修正した内容のサマリーと、自動修正できなかった中〜大規模な設計上の課題（コンポーネントの肥大化など）をユーザーに報告します。
+
+## コマンド例
+
+- `/review-ui-components`: 全 UI コンポーネントを順次レビューし、ボーイスカウトを適用
+- `/review-ui-components src/components/profile-list`: 特定のコンポーネント群に対して実行
