@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function HomePageView() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-10">
@@ -11,17 +13,17 @@ export function HomePageView() {
       </section>
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2">
-        <a href="/units" className="rounded-2xl border border-slate-300 bg-white p-6 transition hover:-translate-y-0.5 hover:shadow-md">
+        <Link href="/units" className="cursor-pointer rounded-2xl border border-slate-300 bg-white p-6 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-slate-500">画面1</p>
           <h2 className="text-2xl font-bold text-slate-900">住戸を選ぶ</h2>
           <p className="mt-2 text-slate-700">棟とページを切り替え、部屋をクリックして複数選択できます。</p>
-        </a>
+        </Link>
 
-        <a href="/overview" className="rounded-2xl border border-slate-300 bg-white p-6 transition hover:-translate-y-0.5 hover:shadow-md">
+        <Link href="/overview" className="cursor-pointer rounded-2xl border border-slate-300 bg-white p-6 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-slate-500">画面2</p>
           <h2 className="text-2xl font-bold text-slate-900">全体人気を見る</h2>
           <p className="mt-2 text-slate-700">団地全体のどの位置に希望が集中しているかを色で確認できます。</p>
-        </a>
+        </Link>
       </section>
     </main>
   );

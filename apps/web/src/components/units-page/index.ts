@@ -1,1 +1,1 @@
-export { UnitsPageView } from "./page.view";
+export { BuildingUnitsPageView, UnitsPageView } from "./page.view";

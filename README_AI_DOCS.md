@@ -35,6 +35,22 @@ powershell -ExecutionPolicy Bypass -File "u:\2026src-ni\scripts\run_pipeline.ps1
   -FallbackToEnglish
 ```
 
+MinerUで実行する場合（推奨: レイアウト・表・数式を含む解析）:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "u:\2026src-ni\scripts\run_pipeline.ps1" `
+  -PdfPath "u:\2026src-ni\日鋼団地 全体説明会③資料 0613開催.pdf" `
+  -Engine mineru
+```
+
+MinerUの事前インストール例:
+
+```powershell
+py -3.11 -m pip install -U "mineru[all]"
+```
+
+注: Windows では MinerU の公式案内上、Python 3.10〜3.12 が対象です。手元の既定 Python が 3.13 の場合は、`py -3.11` を使ってください。
+
 ## 3. 成果物
 
 出力先デフォルト: `u:\2026src-ni\ai-docs`
@@ -47,6 +63,11 @@ powershell -ExecutionPolicy Bypass -File "u:\2026src-ni\scripts\run_pipeline.ps1
   - 棟・階・面積などの機械抽出サマリ
 - `structured\summary.md`
   - 上記サマリの可読版
+
+MinerU実行時は追加で以下が生成されます。
+
+- `mineru_manifest.json`
+  - 実行コマンド、主要出力の自動検出結果、正規化した出力先
 
 ## 4. 検証ポイント
 
