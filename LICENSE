@@ -1,0 +1,20 @@
+Dual Licensing Notice
+=====================
+
+Copyright (c) 2026 masakinihirota
+
+This project is provided under a dual-license model:
+
+1) GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)
+   - For open-source use and use cases that comply with AGPL obligations.
+   - See [LICENSE-AGPL-3.0.txt](LICENSE-AGPL-3.0.txt).
+
+2) Commercial License
+   - Required for organizations that provide this software (or a derivative work)
+     as part of a paid service, paid product, or paid redistribution and do not
+     wish to operate under AGPL obligations.
+   - See [LICENSE-COMMERCIAL.txt](LICENSE-COMMERCIAL.txt).
+
+If you cannot or do not want to comply with AGPL obligations, you must obtain
+a commercial license.
+
