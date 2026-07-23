@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 
-import { AdminPageView, type AdminSummaryResponse } from "@/components/admin-page";
+import {
+  AdminPageView,
+  type ChatsAdminSummaryResponse,
+  type DataSourceMode,
+  type WishesAdminSummaryResponse,
+} from "@/components/admin-page";
 import { ADMIN_AUTH_COOKIE_NAME, getAdminHiddenPath, isAdminAuthConfigured, isValidAdminSession } from "@/lib/admin-auth";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -34,28 +39,61 @@ export default async function Page({
   const isLoggedIn = isValidAdminSession(cookieStore.get(ADMIN_AUTH_COOKIE_NAME)?.value);
   const errorMessage = query.error ? ERROR_MESSAGES[query.error] : null;
   const isConfigured = isAdminAuthConfigured();
-  let initialSummary: AdminSummaryResponse | null = null;
+  let initialWishesSummary: WishesAdminSummaryResponse | null = null;
+  let initialChatSummary: ChatsAdminSummaryResponse | null = null;
+  let initialDataSourceMode: DataSourceMode | null = null;
   let initialSummaryError: string | null = null;
 
   if (isLoggedIn) {
     const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
     const protocol = headerStore.get("x-forwarded-proto") ?? "http";
     if (host) {
-      const response = await fetch(`${protocol}://${host}/api/wishes/admin-summary`, {
-        cache: "no-store",
-        headers: {
-          cookie: headerStore.get("cookie") ?? "",
-        },
-      });
-      const json = (await response.json()) as {
+      const cookieHeader = headerStore.get("cookie") ?? "";
+      const [wishesResponse, chatsResponse, modeResponse] = await Promise.all([
+        fetch(`${protocol}://${host}/api/wishes/admin-summary`, {
+          cache: "no-store",
+          headers: { cookie: cookieHeader },
+        }),
+        fetch(`${protocol}://${host}/api/chats/admin-summary`, {
+          cache: "no-store",
+          headers: { cookie: cookieHeader },
+        }),
+        fetch(`${protocol}://${host}/api/wishes/admin-data-source`, {
+          cache: "no-store",
+          headers: { cookie: cookieHeader },
+        }),
+      ]);
+
+      const wishesJson = (await wishesResponse.json()) as {
         success?: boolean;
-        data?: AdminSummaryResponse;
+        data?: WishesAdminSummaryResponse;
         error?: { message?: string };
       };
-      if (response.ok && json.success && json.data) {
-        initialSummary = json.data;
+      const chatsJson = (await chatsResponse.json()) as {
+        success?: boolean;
+        data?: ChatsAdminSummaryResponse;
+        error?: { message?: string };
+      };
+      const modeJson = (await modeResponse.json()) as {
+        success?: boolean;
+        data?: { mode?: DataSourceMode };
+        error?: { message?: string };
+      };
+
+      if (!wishesResponse.ok || !wishesJson.success || !wishesJson.data) {
+        initialSummaryError = wishesJson.error?.message ?? "希望入力の管理集計取得に失敗しました。";
       } else {
-        initialSummaryError = json.error?.message ?? "管理集計の取得に失敗しました。";
+        initialWishesSummary = wishesJson.data;
+      }
+      if (!chatsResponse.ok || !chatsJson.success || !chatsJson.data) {
+        initialSummaryError = chatsJson.error?.message ?? "チャット管理集計の取得に失敗しました。";
+      } else {
+        initialChatSummary = chatsJson.data;
+      }
+      if (!modeResponse.ok || !modeJson.success || !modeJson.data?.mode) {
+        initialSummaryError = modeJson.error?.message ?? "データソース設定の取得に失敗しました。";
+      } else {
+        initialDataSourceMode = modeJson.data.mode;
       }
     } else {
       initialSummaryError = "管理集計の取得に必要なホスト情報を特定できませんでした。";
@@ -89,7 +127,12 @@ export default async function Page({
 
         {isLoggedIn ? (
           <div className="mt-5 space-y-4">
-            <AdminPageView initialData={initialSummary} initialError={initialSummaryError} />
+            <AdminPageView
+              initialWishesData={initialWishesSummary}
+              initialChatData={initialChatSummary}
+              initialDataSourceMode={initialDataSourceMode}
+              initialError={initialSummaryError}
+            />
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <p className="font-semibold text-slate-900">管理者向けに追加で設定しておくとよい項目</p>
               <ul className="mt-2 list-disc space-y-1 pl-5">

@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>府中日鋼団地 建替え事業 - 住戸配置・価格表</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Noto Sans JP', 'Inter', sans-serif; }
+        canvas { display: block; touch-action: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-sky-600 text-white p-2 rounded-lg font-bold text-xl flex items-center justify-center w-10 h-10 shadow">
+                    <i class="fa-solid fa-building"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight">府中日鋼団地 建替え事業</h1>
+                    <p class="text-xs text-slate-400">全体配置図 (凹型北街区/凹型南街区) & 棟別価格表</p>
+                </div>
+            </div>
+
+            <!-- Global Action Controls -->
+            <div class="flex items-center space-x-3">
+                <div class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 flex items-center space-x-2 text-xs">
+                    <span class="text-slate-400">現在の所有区分:</span>
+                    <select id="userCurrentUnit" class="bg-slate-900 text-white border border-slate-700 rounded px-2 py-1 focus:outline-none focus:border-sky-500">
+                        <option value="3DK">3DK (約47㎡ / 従前評価: 1,809万円)</option>
+                        <option value="3LDK">3LDK (約70㎡ / 従前評価: 2,032万円)</option>
+                    </select>
+                </div>
+
+                <button id="resetZoomBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrows-to-dot"></i> 表示リセット
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Controls & Filters Panel -->
+        <aside class="lg:col-span-3 space-y-5">
+            <!-- Navigation Tabs -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-map"></i> 表示モード切り替え
+                </h2>
+                <div class="grid grid-cols-1 gap-1.5" id="viewModeTabs">
+                    <button data-view="site" class="view-tab active bg-sky-50 text-sky-700 border border-sky-200 text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition flex items-center justify-between">
+                        <span><i class="fa-solid fa-layer-group text-sky-600 mr-2"></i>全体配置図 (N1-N4 / S1-S4)</span>
+                        <i class="fa-solid fa-chevron-right text-xs text-sky-400"></i>
+                    </button>
+                    <button data-view="elevation-N" class="view-tab text-slate-600 hover:bg-slate-50 text-left px-3 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-between border border-transparent">
+                        <span><i class="fa-solid fa-building text-slate-400 mr-2"></i>北街区立面図 (N-1~N-4)</span>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-300"></i>
+                    </button>
+                    <button data-view="elevation-S" class="view-tab text-slate-600 hover:bg-slate-50 text-left px-3 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-between border border-transparent">
+                        <span><i class="fa-solid fa-building text-slate-400 mr-2"></i>南街区立面図 (S-1~S-4)</span>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-300"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-building-user"></i> 棟選択 (詳細表示)
+                </h2>
+
+                <div class="space-y-2">
+                    <div class="text-xs font-semibold text-slate-500">北街区 (North - 凹型)</div>
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <button data-tower="N-1" class="tower-btn bg-slate-100 hover:bg-sky-100 hover:text-sky-700 text-slate-700 font-bold py-2 rounded text-xs text-center border border-slate-200">N-1<br><span class="text-[10px] font-normal text-slate-500">(西)</span></button>
+                        <button data-tower="N-2" class="tower-btn bg-slate-100 hover:bg-sky-100 hover:text-sky-700 text-slate-700 font-bold py-2 rounded text-xs text-center border border-slate-200">N-2<br><span class="text-[10px] font-normal text-slate-500">(南)</span></button>
+                        <button data-tower="N-3" class="tower-btn bg-slate-100 hover:bg-sky-100 hover:text-sky-700 text-slate-700 font-bold py-2 rounded text-xs text-center border border-slate-200">N-3<br><span class="text-[10px] font-normal text-slate-500">(南)</span></button>
+                        <button data-tower="N-4" class="tower-btn bg-slate-100 hover:bg-sky-100 hover:text-sky-700 text-slate-700 font-bold py-2 rounded text-xs text-center border border-slate-200">N-4<br><span class="text-[10px] font-normal text-slate-500">(東)</span></button>
+                    </div>
+
+                    <div class="text-xs font-semibold text-slate-500 pt-1">南街区 (South - 凹型)</div>
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <button data-tower="S-1" class="tower-btn bg-slate-100 hover:bg-sky-100 hover:text-sky-700 text-slate-700 font-bold py-2 rounded text-xs text-center border border-slate-200">S-1<br><span class="text-[10px] font-normal text-slate-500">(西)</span></button>
+                        <button data-tower="S-2" class="tower-btn bg-slate-100 hover:bg-sky-100 hover:text-sky-700 text-slate-700 font-bold py-2 rounded text-xs text-center border border-slate-200">S-2<br><span class="text-[10px] font-normal text-slate-500">(南)</span></button>
+                        <button data-tower="S-3" class="tower-btn bg-slate-100 hover:bg-sky-100 hover:text-sky-700 text-slate-700 font-bold py-2 rounded text-xs text-center border border-slate-200">S-3<br><span class="text-[10px] font-normal text-slate-500">(南)</span></button>
+                        <button data-tower="S-4" class="tower-btn bg-slate-100 hover:bg-sky-100 hover:text-sky-700 text-slate-700 font-bold py-2 rounded text-xs text-center border border-slate-200">S-4<br><span class="text-[10px] font-normal text-slate-500">(東)</span></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Display Content Controls -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-eye"></i> 表示項目 & フィルタ
+                </h2>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-medium text-slate-600">表示モード:</label>
+                    <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-lg">
+                        <button id="showAreaBtn" class="bg-white shadow-xs text-slate-800 py-1 px-2 rounded text-xs font-medium text-center">面積 (㎡)</button>
+                        <button id="showPriceBtn" class="text-slate-600 hover:text-slate-900 py-1 px-2 rounded text-xs font-medium text-center">価格 (万円)</button>
+                        <button id="showSelfBurdenBtn" class="text-slate-600 hover:text-slate-900 py-1 px-2 rounded text-xs font-medium text-center">負担額</button>
+                    </div>
+                </div>
+
+                <!-- Color Legend -->
+                <div class="pt-2 border-t border-slate-100 space-y-1.5">
+                    <div class="text-xs font-medium text-slate-600 mb-1">専有面積帯 凡例:</div>
+                    <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-amber-100 border border-amber-300"></span> 35㎡台</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-orange-100 border border-orange-300"></span> 40㎡台</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-emerald-100 border border-emerald-300"></span> 50㎡台</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-sky-100 border border-sky-300"></span> 60㎡台</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-indigo-100 border border-indigo-300"></span> 70㎡台</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-rose-100 border border-rose-300"></span> 80㎡台</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Canvas Viewer Area -->
+        <section class="lg:col-span-9 flex flex-col space-y-4">
+
+            <!-- Title & Status Header -->
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 id="canvasTitle" class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span>
+                        全体配置図 (凹型配置: 北街区 N1-N4 / 南街区 S1-S4)
+                    </h2>
+                    <p id="canvasSubtitle" class="text-xs text-slate-500 mt-0.5">
+                        資料画像の配置（上が北向き、北と南にそれぞれ「凹」の字型に配置）を再現。クリックで各棟の詳細を表示。
+                    </p>
+                </div>
+
+                <div class="flex items-center space-x-2 text-xs">
+                    <span id="unitHoverBadge" class="hidden bg-slate-800 text-slate-100 px-3 py-1.5 rounded-lg font-mono font-medium shadow-xs">
+                        選択なし
+                    </span>
+                </div>
+            </div>
+
+            <!-- Canvas Viewport Box -->
+            <div class="relative bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-inner flex-1 min-h-[520px] flex items-center justify-center">
+                <canvas id="mainCanvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+
+                <!-- Floating Canvas Navigation Controls -->
+                <div class="absolute bottom-4 right-4 bg-slate-900/90 border border-slate-700/80 rounded-lg p-1 flex items-center space-x-1 shadow-lg backdrop-blur-xs text-white text-xs">
+                    <button id="zoomInBtn" class="w-8 h-8 hover:bg-slate-800 rounded flex items-center justify-center" title="拡大">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <button id="zoomOutBtn" class="w-8 h-8 hover:bg-slate-800 rounded flex items-center justify-center" title="縮小">
+                        <i class="fa-solid fa-minus"></i>
+                    </button>
+                    <button id="fitCanvasBtn" class="w-8 h-8 hover:bg-slate-800 rounded flex items-center justify-center" title="全体表示">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </div>
+
+                <!-- Floating Tooltip -->
+                <div id="canvasTooltip" class="pointer-events-none absolute hidden bg-slate-900/95 text-white border border-slate-700 p-3 rounded-lg shadow-2xl text-xs z-20 space-y-1.5 min-w-[220px]">
+                    <div id="tooltipRoom" class="font-bold text-sky-400 border-b border-slate-700 pb-1 flex justify-between">
+                        <span>S1-1-1001</span>
+                        <span class="text-slate-400 text-[10px]">10階</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-slate-300">
+                        <span>専有面積:</span> <span id="tooltipArea" class="font-semibold text-white text-right">67.98 ㎡</span>
+                        <span>住戸価格:</span> <span id="tooltipPrice" class="font-semibold text-emerald-400 text-right">5,030 万円</span>
+                        <span>概算負担金:</span> <span id="tooltipBurden" class="font-semibold text-amber-300 text-right">3,221 万円</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        /**
+         * Fuchu Nikko Danchi Data Structure
+         */
+        const TOWER_CONFIGS = {
+            'N-1': { name: 'N-1棟', facing: '西向き', cols: 6, maxFloors: 14, block: 'N', orientation: 'west' },
+            'N-2': { name: 'N-2棟', facing: '南向き', cols: 5, maxFloors: 14, block: 'N', orientation: 'south' },
+            'N-3': { name: 'N-3棟', facing: '南向き', cols: 11, maxFloors: 14, block: 'N', orientation: 'south' },
+            'N-4': { name: 'N-4棟', facing: '東向き', cols: 8, maxFloors: 14, block: 'N', orientation: 'east' },
+
+            'S-1': { name: 'S-1棟', facing: '西向き', cols: 8, maxFloors: 14, block: 'S', orientation: 'west' },
+            'S-2': { name: 'S-2棟', facing: '南向き', cols: 9, maxFloors: 14, block: 'S', orientation: 'south' },
+            'S-3': { name: 'S-3棟', facing: '南向き', cols: 8, maxFloors: 14, block: 'S', orientation: 'south' },
+            'S-4': { name: 'S-4棟', facing: '東向き', cols: 8, maxFloors: 14, block: 'S', orientation: 'east' }
+        };
+
+        const PREVIOUS_VALUATIONS = {
+            '3DK': 1809,
+            '3LDK': 2032
+        };
+
+        const state = {
+            currentView: 'site',
+            selectedTower: 'S-1',
+            displayMode: 'area',
+            userCurrentUnitType: '3DK',
+            zoomLevel: 1.0,
+            panOffset: { x: 0, y: 0 },
+            isDragging: false,
+            dragStart: { x: 0, y: 0 },
+            hoveredUnit: null
+        };
+
+        function generateUnitData() {
+            const units = [];
+
+            Object.keys(TOWER_CONFIGS).forEach(towerKey => {
+                const cfg = TOWER_CONFIGS[towerKey];
+
+                for (let floor = 1; floor <= cfg.maxFloors; floor++) {
+                    for (let col = 1; col <= cfg.cols; col++) {
+                        let isCommon = false;
+                        let area = 61.80;
+                        let basePrice = 4300;
+
+                        if (towerKey === 'S-1') {
+                            if (col === 1) { area = 67.98; basePrice = 4400; }
+                            else if (col === 3) { area = 43.26; basePrice = 3050; }
+                            else if (col >= 7) { area = 51.50; basePrice = 3500; }
+                            else { area = 61.80; basePrice = 4350; }
+                            if (floor === 1 && col === 8) isCommon = true;
+                        }
+                        else if (towerKey === 'S-4') {
+                            if (col === 1 || col === 2) { area = 61.24; basePrice = 4150; }
+                            else if (col === 3 || col === 5) {
+                                if (floor <= 5) { area = 35.96; basePrice = 1830; }
+                                else { area = 71.92; basePrice = 5200; }
+                            }
+                            else if (col === 4) { area = 43.26; basePrice = 3000; }
+                            else if (col === 6) { area = 53.75; basePrice = 3750; }
+                            else if (col === 7) {
+                                if (floor <= 5) { area = 42.92; basePrice = 2980; }
+                                else { area = 78.88; basePrice = 5800; }
+                            }
+                            else { area = 81.24; basePrice = 6000; }
+                            if (floor === 1 && (col === 6 || col === 7)) isCommon = true;
+                        }
+                        else if (towerKey === 'S-2') {
+                            if (col === 1) { area = 71.10; basePrice = 5900; }
+                            else if (col === 2) { area = 43.26; basePrice = 3400; }
+                            else if (col === 3 || col === 4 || col === 9) { area = 50.02; basePrice = 3850; }
+                            else if (col === 5) { area = 47.38; basePrice = 3700; }
+                            else if (col === 6 || col === 8) { area = 61.80; basePrice = 4800; }
+                            else { area = 63.86; basePrice = 4950; }
+                        }
+                        else if (towerKey === 'S-3') {
+                            if (col === 8) { area = 80.05; basePrice = 7100; }
+                            else if (col === 3 || col === 4) { area = 71.08; basePrice = 5500; }
+                            else { area = 71.92; basePrice = 5650; }
+                            if (floor === 1 && (col === 5 || col === 6)) isCommon = true;
+                        }
+                        else if (towerKey === 'N-1') {
+                            if (col === 1) { area = 84.22; basePrice = 6200; }
+                            else if (col === 2 || col === 3) {
+                                if (floor <= 5) { area = 35.96; basePrice = 1860; }
+                                else { area = 71.92; basePrice = 5100; }
+                            }
+                            else if (col === 4) { area = 69.60; basePrice = 4900; }
+                            else { area = 64.72; basePrice = 4500; }
+                        }
+                        else if (towerKey === 'N-2') {
+                            if (col === 1 || col === 5) { area = 61.80; basePrice = 4400; }
+                            else if (col === 4) { area = 47.38; basePrice = 3300; }
+                            else { area = 50.02; basePrice = 3500; }
+                        }
+                        else if (towerKey === 'N-3') {
+                            if (col === 11) { area = 81.42; basePrice = 6400; }
+                            else if (col === 10) { area = 64.22; basePrice = 4800; }
+                            else if (col === 9) { area = 54.25; basePrice = 3800; }
+                            else if (col === 8) { area = 68.85; basePrice = 5130; }
+                            else { area = 69.60; basePrice = 5130; }
+                            if (floor === 1 && (col === 8 || col === 9)) isCommon = true;
+                        }
+                        else if (towerKey === 'N-4') {
+                            if (col === 8) { area = 84.22; basePrice = 6300; }
+                            else if (col === 7) { area = 74.24; basePrice = 5400; }
+                            else if (col === 6) { area = 71.92; basePrice = 5200; }
+                            else if (col >= 3 && col <= 5) { area = 54.25; basePrice = 3700; }
+                            else { area = 64.72; basePrice = 4600; }
+                            if (floor === 1 && (col === 1 || col === 2)) isCommon = true;
+                        }
+
+                        const price = isCommon ? 0 : Math.round(basePrice + (floor - 1) * 35);
+                        const roomNum = isCommon ? '共用' : `${towerKey.replace('-', '')}-${col}-${floor}${col < 10 ? '0' + col : col}`;
+
+                        units.push({
+                            id: `${towerKey}-${floor}-${col}`,
+                            tower: towerKey,
+                            floor: floor,
+                            col: col,
+                            roomNum: roomNum,
+                            area: isCommon ? 0 : area,
+                            price: price,
+                            isCommon: isCommon
+                        });
+                    }
+                }
+            });
+
+            return units;
+        }
+
+        const ALL_UNITS = generateUnitData();
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function getAreaColor(area, isCommon) {
+            if (isCommon) return { fill: '#e2e8f0', stroke: '#cbd5e1', text: '#64748b' };
+            if (area < 40) return { fill: '#fef9c3', stroke: '#fde047', text: '#854d0e' };
+            if (area < 50) return { fill: '#ffedd5', stroke: '#fdba74', text: '#9a3412' };
+            if (area < 60) return { fill: '#dcfce7', stroke: '#86efac', text: '#166534' };
+            if (area < 70) return { fill: '#dbeafe', stroke: '#93c5fd', text: '#1e40af' };
+            if (area < 80) return { fill: '#e0e7ff', stroke: '#a5b4fc', text: '#3730a3' };
+            return { fill: '#fce7f3', stroke: '#f472b6', text: '#9d174d' };
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            render();
+        }
+
+        /**
+         * Render Site Plan matching image_a79ac1.png
+         * Top is North (N)
+         * North block: N-1 (left vertical), N-4 (right vertical), N-2 & N-3 (bottom horizontal) -> 凹 shape
+         * South block: S-1 (left vertical), S-4 (right vertical), S-2 & S-3 (bottom horizontal) -> 凹 shape
+         */
+        function drawSitePlan(width, height) {
+            ctx.save();
+
+            // Outer Background
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, width, height);
+
+            // Outer Site Boundary (matching the angled 5-sided polygon from user image)
+            ctx.beginPath();
+            ctx.moveTo(width * 0.22, height * 0.08); // Top left
+            ctx.lineTo(width * 0.82, height * 0.08); // Top right
+            ctx.lineTo(width * 0.82, height * 0.90); // Bottom right
+            ctx.lineTo(width * 0.18, height * 0.83); // Bottom left
+            ctx.lineTo(width * 0.24, height * 0.32); // Inset vertex
+            ctx.closePath();
+
+            ctx.fillStyle = '#1e293b';
+            ctx.fill();
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+
+            // Compass Rose Icon (Top-Left inside site boundary)
+            const compassX = width * 0.32, compassY = height * 0.16;
+            ctx.fillStyle = '#334155';
+            ctx.beginPath(); ctx.arc(compassX, compassY, 20, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(compassX, compassY + 10); ctx.lineTo(compassX, compassY - 10); ctx.stroke();
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.moveTo(compassX - 5, compassY - 1); ctx.lineTo(compassX, compassY - 13); ctx.lineTo(compassX + 5, compassY - 1); ctx.fill();
+            ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('N', compassX, compassY - 15);
+
+            const centerX = width * 0.52;
+
+            // Coordinates for exact 凹 (concave) shapes:
+            // North Block (凹): N-1 (left top), N-4 (right top), N-2 & N-3 (bottom base)
+            const northBaseY = height * 0.42;
+            const barWidthLeft = 95, barWidthRight = 95, horizHeight = 36;
+            const vertWidth = 44, vertHeight = 85;
+
+            // South Block (凹): S-1 (left top), S-4 (right top), S-2 & S-3 (bottom base)
+            const southBaseY = height * 0.74;
+
+            const towerLayout = {
+                // North Block 凹
+                'N-1': { x: centerX - barWidthLeft, y: northBaseY - vertHeight, width: vertWidth, height: vertHeight },
+                'N-4': { x: centerX + barWidthRight - vertWidth, y: northBaseY - vertHeight, width: vertWidth, height: vertHeight },
+                'N-2': { x: centerX - barWidthLeft, y: northBaseY, width: barWidthLeft, height: horizHeight },
+                'N-3': { x: centerX, y: northBaseY, width: barWidthRight, height: horizHeight },
+
+                // South Block 凹
+                'S-1': { x: centerX - barWidthLeft, y: southBaseY - vertHeight, width: vertWidth, height: vertHeight },
+                'S-4': { x: centerX + barWidthRight - vertWidth, y: southBaseY - vertHeight, width: vertWidth, height: vertHeight },
+                'S-2': { x: centerX - barWidthLeft, y: southBaseY, width: barWidthLeft, height: horizHeight },
+                'S-3': { x: centerX, y: southBaseY, width: barWidthRight, height: horizHeight },
+            };
+
+            // Section Labels
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 12px "Noto Sans JP", sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('【北街区】 凹型配置 (N-1 ~ N-4)', centerX - barWidthLeft, northBaseY - vertHeight - 12);
+            ctx.fillText('【南街区】 凹型配置 (S-1 ~ S-4)', centerX - barWidthLeft, southBaseY - vertHeight - 12);
+
+            Object.keys(towerLayout).forEach(key => {
+                const cfg = TOWER_CONFIGS[key];
+                const layout = towerLayout[key];
+
+                const isHovered = state.hoveredUnit && state.hoveredUnit.tower === key;
+                const isSelected = state.selectedTower === key;
+
+                // Red highlight boxes matching image annotations for South Block or selected items
+                const isSouth = key.startsWith('S');
+
+                ctx.fillStyle = isSelected ? '#0284c7' : (isHovered ? '#0369a1' : (isSouth ? '#381c2b' : '#334155'));
+                ctx.strokeStyle = isSouth ? '#ef4444' : (isSelected ? '#38bdf8' : (isHovered ? '#60a5fa' : '#94a3b8'));
+                ctx.lineWidth = isSouth ? 2.5 : (isSelected ? 3 : 1.5);
+
+                ctx.beginPath();
+                ctx.roundRect(layout.x, layout.y, layout.width, layout.height, 4);
+                ctx.fill();
+                ctx.stroke();
+
+                // Tower Title & Orientation Text
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px "Noto Sans JP", sans-serif';
+                ctx.textAlign = 'center';
+
+                const textY = layout.y + layout.height / 2 + (layout.height > 50 ? -2 : 2);
+                ctx.fillText(key, layout.x + layout.width / 2, textY);
+
+                if (layout.height > 50) {
+                    ctx.font = '10px "Noto Sans JP", sans-serif';
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.fillText(`(${cfg.facing})`, layout.x + layout.width / 2, textY + 14);
+                }
+
+                cfg.bounds = layout;
+            });
+
+            ctx.restore();
+        }
+
+        function drawElevationPlan(width, height) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, width, height);
+
+            let targetTowers = [];
+            if (state.currentView === 'elevation-N') {
+                targetTowers = ['N-1', 'N-2', 'N-3', 'N-4'];
+            } else if (state.currentView === 'elevation-S') {
+                targetTowers = ['S-1', 'S-2', 'S-3', 'S-4'];
+            } else {
+                targetTowers = [state.selectedTower];
+            }
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 15px "Noto Sans JP", sans-serif';
+            ctx.textAlign = 'left';
+            const titleStr = targetTowers.length > 1 ?
+                (state.currentView === 'elevation-N' ? '北街区 住戸構成・価格立面図 (N-1〜N-4)' : '南街区 住戸構成・価格立面図 (S-1〜S-4)') :
+                `${TOWER_CONFIGS[targetTowers[0]].name} (${TOWER_CONFIGS[targetTowers[0]].facing}) 住戸・価格表詳細`;
+            ctx.fillText(titleStr, 30, 35);
+
+            let currentX = 50;
+            const cellW = targetTowers.length > 1 ? 40 : 60;
+            const cellH = targetTowers.length > 1 ? 22 : 26;
+
+            targetTowers.forEach((towerKey, tIdx) => {
+                const cfg = TOWER_CONFIGS[towerKey];
+                const towerUnits = ALL_UNITS.filter(u => u.tower === towerKey);
+
+                ctx.fillStyle = '#0284c7';
+                ctx.beginPath();
+                ctx.roundRect(currentX, 55, cfg.cols * cellW, 24, 4);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${cfg.name} (${cfg.facing})`, currentX + (cfg.cols * cellW) / 2, 71);
+
+                for (let floor = 14; floor >= 1; floor--) {
+                    const rowY = 92 + (14 - floor) * cellH;
+
+                    if (tIdx === 0) {
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.font = 'bold 10px sans-serif';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`${floor}F`, currentX - 10, rowY + cellH / 2 + 3);
+                    }
+
+                    for (let col = 1; col <= cfg.cols; col++) {
+                        const unit = towerUnits.find(u => u.floor === floor && u.col === col);
+                        if (!unit) continue;
+
+                        const cellX = currentX + (col - 1) * cellW;
+                        const isHovered = state.hoveredUnit && state.hoveredUnit.id === unit.id;
+                        const colors = getAreaColor(unit.area, unit.isCommon);
+
+                        ctx.fillStyle = isHovered ? '#ffffff' : colors.fill;
+                        ctx.strokeStyle = isHovered ? '#0284c7' : colors.stroke;
+                        ctx.lineWidth = isHovered ? 2 : 1;
+
+                        ctx.beginPath();
+                        ctx.roundRect(cellX + 1, rowY + 1, cellW - 2, cellH - 2, 3);
+                        ctx.fill();
+                        ctx.stroke();
+
+                        ctx.fillStyle = isHovered ? '#0f172a' : colors.text;
+                        ctx.font = cellW > 50 ? '10px sans-serif' : '8px sans-serif';
+                        ctx.textAlign = 'center';
+
+                        let displayVal = '';
+                        if (unit.isCommon) {
+                            displayVal = '共用';
+                        } else if (state.displayMode === 'area') {
+                            displayVal = `${unit.area}㎡`;
+                        } else if (state.displayMode === 'price') {
+                            displayVal = `${unit.price}万`;
+                        } else {
+                            const currentValuation = PREVIOUS_VALUATIONS[state.userCurrentUnitType];
+                            const burden = unit.price - currentValuation;
+                            displayVal = `${burden}万`;
+                        }
+
+                        ctx.fillText(displayVal, cellX + cellW / 2, rowY + cellH / 2 + 3);
+                        unit.bounds = { x: cellX, y: rowY, width: cellW, height: cellH };
+                    }
+                }
+
+                currentX += cfg.cols * cellW + 30;
+            });
+
+            ctx.restore();
+        }
+
+        function render() {
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+
+            ctx.clearRect(0, 0, width, height);
+
+            ctx.save();
+            ctx.translate(state.panOffset.x, state.panOffset.y);
+            ctx.scale(state.zoomLevel, state.zoomLevel);
+
+            if (state.currentView === 'site') {
+                drawSitePlan(width, height);
+            } else {
+                drawElevationPlan(width, height);
+            }
+
+            ctx.restore();
+        }
+
+        function handlePointerMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX - rect.left;
+            const clientY = e.clientY - rect.top;
+
+            if (state.isDragging) {
+                state.panOffset.x += clientX - state.dragStart.x;
+                state.panOffset.y += clientY - state.dragStart.y;
+                state.dragStart = { x: clientX, y: clientY };
+                render();
+                return;
+            }
+
+            const canvasX = (clientX - state.panOffset.x) / state.zoomLevel;
+            const canvasY = (clientY - state.panOffset.y) / state.zoomLevel;
+
+            let foundHover = null;
+            const tooltip = document.getElementById('canvasTooltip');
+
+            if (state.currentView === 'site') {
+                Object.keys(TOWER_CONFIGS).forEach(key => {
+                    const cfg = TOWER_CONFIGS[key];
+                    if (cfg.bounds && canvasX >= cfg.bounds.x && canvasX <= cfg.bounds.x + cfg.bounds.width &&
+                        canvasY >= cfg.bounds.y && canvasY <= cfg.bounds.y + cfg.bounds.height) {
+                        foundHover = { tower: key, isTowerBlock: true };
+                    }
+                });
+            } else {
+                ALL_UNITS.forEach(unit => {
+                    if (unit.bounds && canvasX >= unit.bounds.x && canvasX <= unit.bounds.x + unit.bounds.width &&
+                        canvasY >= unit.bounds.y && canvasY <= unit.bounds.y + unit.bounds.height) {
+                        foundHover = unit;
+                    }
+                });
+            }
+
+            state.hoveredUnit = foundHover;
+
+            if (foundHover && !foundHover.isTowerBlock && !foundHover.isCommon) {
+                document.getElementById('tooltipRoom').innerHTML = `<span>${foundHover.roomNum}</span> <span class="text-slate-400">${foundHover.floor}階 (${TOWER_CONFIGS[foundHover.tower].facing})</span>`;
+                document.getElementById('tooltipArea').innerText = `${foundHover.area} ㎡`;
+                document.getElementById('tooltipPrice').innerText = `${foundHover.price.toLocaleString()} 万円`;
+
+                const prevVal = PREVIOUS_VALUATIONS[state.userCurrentUnitType];
+                const burden = foundHover.price - prevVal;
+                document.getElementById('tooltipBurden').innerText = `${burden.toLocaleString()} 万円`;
+
+                tooltip.style.left = `${clientX + 15}px`;
+                tooltip.style.top = `${clientY + 15}px`;
+                tooltip.classList.remove('hidden');
+
+                document.getElementById('unitHoverBadge').innerText = `${foundHover.roomNum} | ${foundHover.area}㎡ | ${foundHover.price}万円`;
+                document.getElementById('unitHoverBadge').classList.remove('hidden');
+            } else {
+                tooltip.classList.add('hidden');
+            }
+
+            render();
+        }
+
+        function handlePointerDown(e) {
+            const rect = canvas.getBoundingClientRect();
+            state.isDragging = true;
+            state.dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        function handlePointerUp(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX - rect.left;
+            const clientY = e.clientY - rect.top;
+
+            const canvasX = (clientX - state.panOffset.x) / state.zoomLevel;
+            const canvasY = (clientY - state.panOffset.y) / state.zoomLevel;
+
+            if (state.currentView === 'site') {
+                Object.keys(TOWER_CONFIGS).forEach(key => {
+                    const cfg = TOWER_CONFIGS[key];
+                    if (cfg.bounds && canvasX >= cfg.bounds.x && canvasX <= cfg.bounds.x + cfg.bounds.width &&
+                        canvasY >= cfg.bounds.y && canvasY <= cfg.bounds.y + cfg.bounds.height) {
+                        selectTowerView(key);
+                    }
+                });
+            }
+
+            state.isDragging = false;
+        }
+
+        function selectTowerView(towerKey) {
+            state.selectedTower = towerKey;
+            state.currentView = `tower-${towerKey}`;
+            state.panOffset = { x: 0, y: 0 };
+            state.zoomLevel = 1.0;
+
+            document.getElementById('canvasTitle').innerHTML = `
+                <span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span>
+                ${TOWER_CONFIGS[towerKey].name} (${TOWER_CONFIGS[towerKey].facing}) 住戸・価格表詳細
+            `;
+            document.getElementById('canvasSubtitle').innerText = `階別・タイプ別マトリクス`;
+
+            updateViewTabUI();
+            render();
+        }
+
+        function updateViewTabUI() {
+            document.querySelectorAll('.view-tab').forEach(btn => {
+                const v = btn.dataset.view;
+                if (v === state.currentView) {
+                    btn.className = 'view-tab active bg-sky-50 text-sky-700 border border-sky-200 text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition flex items-center justify-between';
+                } else {
+                    btn.className = 'view-tab text-slate-600 hover:bg-slate-50 text-left px-3 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-between border border-transparent';
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            canvas.addEventListener('mousedown', handlePointerDown);
+            canvas.addEventListener('mousemove', handlePointerMove);
+            canvas.addEventListener('mouseup', handlePointerUp);
+            canvas.addEventListener('mouseleave', () => {
+                state.isDragging = false;
+                document.getElementById('canvasTooltip').classList.add('hidden');
+            });
+
+            document.getElementById('zoomInBtn').addEventListener('click', () => { state.zoomLevel *= 1.2; render(); });
+            document.getElementById('zoomOutBtn').addEventListener('click', () => { state.zoomLevel /= 1.2; render(); });
+            document.getElementById('fitCanvasBtn').addEventListener('click', () => { state.zoomLevel = 1.0; state.panOffset = { x: 0, y: 0 }; render(); });
+            document.getElementById('resetZoomBtn').addEventListener('click', () => { state.zoomLevel = 1.0; state.panOffset = { x: 0, y: 0 }; render(); });
+
+            document.querySelectorAll('.view-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const v = btn.dataset.view;
+                    state.currentView = v;
+                    state.panOffset = { x: 0, y: 0 };
+                    state.zoomLevel = 1.0;
+
+                    if (v === 'site') {
+                        document.getElementById('canvasTitle').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span> 全体配置図 (凹型配置: 北街区 N1-N4 / 南街区 S1-S4)';
+                        document.getElementById('canvasSubtitle').innerText = '資料画像の配置（北街区・南街区ともに凹型）をレンダリング';
+                    } else if (v === 'elevation-N') {
+                        document.getElementById('canvasTitle').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span> 北街区 (N-1 ~ N-4棟) 全体立面・価格表';
+                    } else if (v === 'elevation-S') {
+                        document.getElementById('canvasTitle').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span> 南街区 (S-1 ~ S-4棟) 全体立面・価格表';
+                    }
+
+                    updateViewTabUI();
+                    render();
+                });
+            });
+
+            document.querySelectorAll('.tower-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectTowerView(btn.dataset.tower);
+                });
+            });
+
+            const showAreaBtn = document.getElementById('showAreaBtn');
+            const showPriceBtn = document.getElementById('showPriceBtn');
+            const showBurdenBtn = document.getElementById('showSelfBurdenBtn');
+
+            function updateDisplayModeUI(activeBtn) {
+                [showAreaBtn, showPriceBtn, showBurdenBtn].forEach(b => {
+                    b.className = 'text-slate-600 hover:text-slate-900 py-1 px-2 rounded text-xs font-medium text-center';
+                });
+                activeBtn.className = 'bg-white shadow-xs text-slate-800 py-1 px-2 rounded text-xs font-medium text-center';
+            }
+
+            showAreaBtn.addEventListener('click', () => { state.displayMode = 'area'; updateDisplayModeUI(showAreaBtn); render(); });
+            showPriceBtn.addEventListener('click', () => { state.displayMode = 'price'; updateDisplayModeUI(showPriceBtn); render(); });
+            showBurdenBtn.addEventListener('click', () => { state.displayMode = 'burden'; updateDisplayModeUI(showBurdenBtn); render(); });
+
+            document.getElementById('userCurrentUnit').addEventListener('change', (e) => {
+                state.userCurrentUnitType = e.target.value;
+                render();
+            });
+        });
+    </script>
+</body>
+</html>

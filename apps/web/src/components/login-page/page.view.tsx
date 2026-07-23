@@ -258,6 +258,11 @@ export function LoginPageView() {
           <fieldset>
             <legend className="text-sm font-semibold text-slate-800">星座匿名（色＋形容詞＋星座）</legend>
             <p className="mt-1 text-xs text-slate-600">まず星座を選び、次にユニークな候補3つから選択してください。</p>
+            <p className="mt-1 text-xs text-slate-600">
+              個人情報を隠すため、基本的に星座匿名でアプリを利用してもらいます。星座匿名は「色＋形容詞＋星座」で作られます。
+              重複した人がいる場合はチェンジボタンで候補を更新できます（チェンジボタンを押しても星座は変わりません。星座はご自身で選び直してください）。
+            </p>
+            <p className="mt-1 text-xs font-semibold text-amber-700">一定期間後に匿名は強制変更されます。</p>
             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="mb-2 text-xs font-semibold text-slate-700">星座選択</p>
               <div className="grid grid-cols-3 gap-2">
@@ -277,8 +282,17 @@ export function LoginPageView() {
                 ))}
               </div>
             </div>
-            <div className="mt-3 rounded-xl border border-[#c9d7e5] bg-[#f4f8fc] p-3 text-center">
-              <p className="text-xs font-semibold text-slate-600">現在の星座匿名</p>
+            <div className="mt-3 rounded-xl border border-[#c9d7e5] bg-[#f4f8fc] p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-slate-600">現在の星座匿名</p>
+                <button
+                  type="button"
+                  onClick={regenerateAliasChoices}
+                  className="cursor-pointer rounded-lg border border-[#6b4d8a] bg-white px-3 py-1 text-xs font-semibold text-[#6b4d8a] transition hover:bg-[#f4ecfb]"
+                >
+                  チェンジ
+                </button>
+              </div>
               <div className="mt-1 flex items-center justify-center gap-2">
                 <span className="inline-block h-3 w-3 rounded-full border border-slate-300" style={{ background: selectedAliasColor.swatch }} />
                 <p className="text-lg font-black" style={{ color: selectedAliasColor.text, textShadow: selectedAliasColor.textShadow }}>
@@ -304,15 +318,6 @@ export function LoginPageView() {
                 </button>
               ))}
               </div>
-            </div>
-            <div className="mt-2">
-              <button
-                type="button"
-                onClick={regenerateAliasChoices}
-                className="w-full cursor-pointer rounded-xl border border-[#6b4d8a] bg-white px-3 py-2 text-sm font-semibold text-[#6b4d8a] transition hover:bg-[#f4ecfb] sm:w-auto"
-              >
-                候補をチェンジ
-              </button>
             </div>
           </fieldset>
 

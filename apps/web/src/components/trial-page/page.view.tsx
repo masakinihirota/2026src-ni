@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { BUILDINGS, type BuildingId } from "@/lib/housing-data";
@@ -31,16 +32,7 @@ const BAND_META: Record<AreaBand, { tile: string; text: string; border: string }
 };
 
 const FLOOR_LIST = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-
-function toColumnLabel(index: number): string {
-  let cursor = index;
-  let label = "";
-  do {
-    label = String.fromCharCode(65 + (cursor % 26)) + label;
-    cursor = Math.floor(cursor / 26) - 1;
-  } while (cursor >= 0);
-  return label;
-}
+const MAX_TRIAL_WISHES = 3;
 
 function districtOf(building: BuildingId): "北" | "南" {
   return building.startsWith("N-") ? "北" : "南";
@@ -242,16 +234,24 @@ function pickRecordIndexByArea(
   return records.findIndex((_, index) => !usedIndexes.has(index));
 }
 
+function reorder<T>(items: T[], from: number, to: number): T[] {
+  const clone = [...items];
+  const [picked] = clone.splice(from, 1);
+  clone.splice(to, 0, picked);
+  return clone;
+}
+
 export function TrialPageView() {
+  const router = useRouter();
   const [district, setDistrict] = useState<"北" | "南">("北");
   const [building, setBuilding] = useState<BuildingId>("N-1");
   const [selectedFloor, setSelectedFloor] = useState(12);
   const [selectedRoomCode, setSelectedRoomCode] = useState("");
+  const [activeWishIndex, setActiveWishIndex] = useState(0);
+  const [dragSourceWishIndex, setDragSourceWishIndex] = useState<number | null>(null);
+  const [trialWishes, setTrialWishes] = useState<string[]>([]);
   const [hoveredCell, setHoveredCell] = useState<{ floor: number; start: number; end: number } | null>(null);
-  const [trialCount, setTrialCount] = useState(0);
   const [lastMessage, setLastMessage] = useState("まだお試し入力はありません。図面から住戸を選んでください。");
-  const [history, setHistory] = useState<string[]>([]);
-  const [trialHitsByRoom, setTrialHitsByRoom] = useState<Record<string, number>>({});
 
   const plan = useMemo(() => buildPlanForBuilding(building), [building]);
   const planColumnCount = useMemo(
@@ -261,32 +261,6 @@ export function TrialPageView() {
       ),
     [plan],
   );
-  const columnLabels = useMemo(
-    () => Array.from({ length: planColumnCount }, (_, index) => toColumnLabel(index)),
-    [planColumnCount],
-  );
-
-  const roomMetaByCode = useMemo(() => {
-    const map = new Map<string, { floor: number; start: number; end: number; positionLabel: string }>();
-    for (const floor of FLOOR_LIST) {
-      let slotCursor = 0;
-      for (const cell of plan[floor] ?? []) {
-        const span = cell?.colSpan ?? 1;
-        const start = slotCursor;
-        const end = start + span - 1;
-        slotCursor += span;
-        if (!cell?.selectable) continue;
-        map.set(cell.roomCode, {
-          floor,
-          start,
-          end,
-          positionLabel: span === 1 ? toColumnLabel(start) : `${toColumnLabel(start)}-${toColumnLabel(end)}`,
-        });
-      }
-    }
-    return map;
-  }, [plan]);
-
   const pdfRecordsForBuilding = useMemo(
     () => PDF_UNIT_RECORDS.filter((record) => toBuildingIdFromUnitNumber(record.unitNumber) === building),
     [building],
@@ -325,7 +299,7 @@ export function TrialPageView() {
         const derivedType = matchedRecord ? (matchedRecord.unitType ?? deriveUnitType(matchedRecord.unitNumber)) : null;
         const areaFromType = derivedType ? fallbackAreaByType.get(derivedType) ?? null : null;
         map.set(cell.roomCode, {
-          unitNumber: matchedRecord?.unitNumber ?? `${building}-${floor}-${roomMetaByCode.get(cell.roomCode)?.positionLabel ?? "資料確認中"}`,
+          unitNumber: matchedRecord?.unitNumber ?? `${building}-${floor}-資料確認中`,
           unitType: derivedType ?? "資料確認中",
           area: matchedRecord?.area ?? areaFromType ?? cell.label,
           priceManYen: matchedRecord?.priceManYen ?? null,
@@ -333,24 +307,22 @@ export function TrialPageView() {
       }
     }
     return map;
-  }, [building, fallbackAreaByType, pdfRecordsForBuilding, plan, roomMetaByCode]);
+  }, [building, fallbackAreaByType, pdfRecordsForBuilding, plan]);
 
   const roomOptions = useMemo(() => {
     const values: { value: string; label: string }[] = [];
     for (const floor of FLOOR_LIST) {
       for (const cell of plan[floor]) {
         if (!cell?.selectable) continue;
-        const meta = roomMetaByCode.get(cell.roomCode);
         const details = unitDetailsByRoomCode.get(cell.roomCode);
         const unitNumber = details?.unitNumber ?? cell.roomCode;
         const area = details?.area ?? cell.label;
         const priceLabel = formatPrice(details?.priceManYen ?? null);
-        const positionLabel = meta?.positionLabel ? ` ${meta.positionLabel}列` : "";
-        values.push({ value: cell.roomCode, label: `${unitNumber}（${floor}階${positionLabel} / ${area} / ${priceLabel}）` });
+        values.push({ value: cell.roomCode, label: `${unitNumber}（${floor}階 / ${area} / ${priceLabel}）` });
       }
     }
     return values;
-  }, [plan, roomMetaByCode, unitDetailsByRoomCode]);
+  }, [plan, unitDetailsByRoomCode]);
   const roomDisplayByCode = useMemo(() => {
     const map = new Map<string, string>();
     for (const option of roomOptions) map.set(option.value, option.label);
@@ -360,6 +332,18 @@ export function TrialPageView() {
     () => (selectedRoomCode ? unitDetailsByRoomCode.get(selectedRoomCode) ?? null : null),
     [selectedRoomCode, unitDetailsByRoomCode],
   );
+  const trialWishRankByRoom = useMemo(() => {
+    return trialWishes.reduce<Map<string, number>>((map, roomCode, index) => {
+      map.set(roomCode, index + 1);
+      return map;
+    }, new Map<string, number>());
+  }, [trialWishes]);
+  const trialHitsByRoom = useMemo(() => {
+    return trialWishes.reduce<Record<string, number>>((acc, roomCode) => {
+      acc[roomCode] = 1;
+      return acc;
+    }, {});
+  }, [trialWishes]);
 
   const availableBuildings = useMemo(() => BUILDINGS.filter((item) => districtOf(item) === district), [district]);
 
@@ -372,19 +356,69 @@ export function TrialPageView() {
     setDistrict(districtOf(nextBuilding));
     changeBuilding(nextBuilding);
   }
-  function submitTrialSelection(): void {
-    if (!selectedRoomCode) return;
-    const details = unitDetailsByRoomCode.get(selectedRoomCode);
-    const unitNumber = details?.unitNumber ?? selectedRoomCode;
-    const nextCount = trialCount + 1;
-    const message = `お試しで ${unitNumber} の部屋を希望しました。`;
-    setTrialCount(nextCount);
-    setLastMessage(message);
-    setHistory((previous) => [`${nextCount}回目: ${message}`, ...previous].slice(0, 8));
-    setTrialHitsByRoom((previous) => ({
-      ...previous,
-      [selectedRoomCode]: (previous[selectedRoomCode] ?? 0) + 1,
-    }));
+
+  function promptLoginForTrial(actionLabel: string): void {
+    const accepted = window.confirm(`現在お試しモードです。${actionLabel}には新規ユーザー登録またはログインが必要です。今すぐ進みますか？`);
+    if (!accepted) return;
+    router.push("/login");
+  }
+
+  function addRoomToTrialWishes(roomCode: string): void {
+    if (!roomCode) {
+      setLastMessage("先に図面から住戸を選択してください。");
+      return;
+    }
+    const existingIndex = trialWishes.findIndex((wishRoomCode) => wishRoomCode === roomCode);
+    if (existingIndex >= 0) {
+      setActiveWishIndex(existingIndex);
+      setLastMessage("この住戸はすでに候補に追加済みです。");
+      return;
+    }
+
+    if (trialWishes.length < MAX_TRIAL_WISHES) {
+      const nextWishes = [...trialWishes, roomCode];
+      setTrialWishes(nextWishes);
+      setActiveWishIndex(Math.min(nextWishes.length - 1, MAX_TRIAL_WISHES - 1));
+      setLastMessage(`候補に追加しました（${nextWishes.length}/3）。お試しでは選んだ住戸だけ希望者数が1として表示されます。`);
+      return;
+    }
+
+    const targetIndex = Math.max(0, Math.min(activeWishIndex, trialWishes.length - 1));
+    const nextWishes = [...trialWishes];
+    nextWishes[targetIndex] = roomCode;
+    setTrialWishes(nextWishes);
+    setActiveWishIndex(Math.min(targetIndex + 1, nextWishes.length - 1));
+    setLastMessage(`第${targetIndex + 1}候補を置き換えました。`);
+  }
+
+  function addTrialWish(): void {
+    addRoomToTrialWishes(selectedRoomCode);
+  }
+
+  function removeTrialWish(targetRoomCode: string): void {
+    const removedIndex = trialWishes.findIndex((roomCode) => roomCode === targetRoomCode);
+    const nextWishes = trialWishes.filter((roomCode) => roomCode !== targetRoomCode);
+    setTrialWishes(nextWishes);
+    if (nextWishes.length === 0) {
+      setActiveWishIndex(0);
+    } else if (removedIndex >= 0) {
+      setActiveWishIndex(Math.max(0, Math.min(activeWishIndex, nextWishes.length - 1)));
+    }
+    setLastMessage(`候補を削除しました（${nextWishes.length}/3）。`);
+  }
+
+  function moveTrialWish(from: number, to: number): void {
+    if (from === to) return;
+    const next = reorder(trialWishes, from, to);
+    setTrialWishes(next);
+    if (activeWishIndex === from) {
+      setActiveWishIndex(to);
+    } else if (from < activeWishIndex && activeWishIndex <= to) {
+      setActiveWishIndex(activeWishIndex - 1);
+    } else if (to <= activeWishIndex && activeWishIndex < from) {
+      setActiveWishIndex(activeWishIndex + 1);
+    }
+    setLastMessage("候補の順番を入れ替えました。");
   }
 
   return (
@@ -496,14 +530,7 @@ export function TrialPageView() {
                   <thead>
                     <tr>
                       <th className="pb-1 pr-2 text-right text-xs font-bold text-[#476b8d]">階数</th>
-                      {columnLabels.map((label, index) => (
-                        <th
-                          key={`trial-col-label-${label}`}
-                          className={["pb-1 text-center text-xs font-bold text-[#5d7e9e]", hoveredCell && index >= hoveredCell.start && index <= hoveredCell.end ? "text-[#2f6d92] underline" : ""].join(" ")}
-                        >
-                          {label}
-                        </th>
-                      ))}
+                      <th className="pb-1" colSpan={planColumnCount} />
                     </tr>
                   </thead>
                   <tbody>
@@ -528,9 +555,9 @@ export function TrialPageView() {
                             }
 
                             const count = trialHitsByRoom[cell.roomCode] ?? 0;
-                            const isPicked = selectedRoomCode === cell.roomCode;
+                            const selectedRank = trialWishRankByRoom.get(cell.roomCode) ?? null;
+                            const isPicked = selectedRank !== null;
                             const borderWidth = count >= 5 ? "border-4" : count >= 3 ? "border-2" : "border";
-                            const columnHint = span === 1 ? toColumnLabel(colStart) : `${toColumnLabel(colStart)}-${toColumnLabel(colEnd)}`;
                             const detail = unitDetailsByRoomCode.get(cell.roomCode);
                             const unitNumber = detail?.unitNumber ?? cell.roomCode;
                             const unitType = detail?.unitType ?? "資料確認中";
@@ -542,7 +569,7 @@ export function TrialPageView() {
                                 <td
                                   key={cell.roomCode}
                                   colSpan={cell.colSpan ?? 1}
-                                  title={`${floor}階 ${columnHint}列`}
+                                  title={`${floor}階`}
                                   className={["h-16 border border-slate-500 bg-[#f4f4f4] px-1 text-center text-sm font-semibold", crossHighlight ? "shadow-[inset_0_0_0_1px_rgba(47,109,146,0.45)]" : ""].join(" ")}
                                 >
                                   {cell.label}
@@ -557,13 +584,14 @@ export function TrialPageView() {
                                   onClick={() => {
                                     setSelectedFloor(floor);
                                     setSelectedRoomCode(cell.roomCode);
+                                    addRoomToTrialWishes(cell.roomCode);
                                   }}
                                   onMouseEnter={() => setHoveredCell({ floor, start: colStart, end: colEnd })}
                                   onMouseLeave={() => setHoveredCell(null)}
                                   onFocus={() => setHoveredCell({ floor, start: colStart, end: colEnd })}
                                   onBlur={() => setHoveredCell(null)}
-                                  title={`${floor}階 ${columnHint}列 / ${unitNumber}`}
-                                  aria-label={`${floor}階 ${columnHint}列 ${unitNumber}`}
+                                  title={`${floor}階 / ${unitNumber}`}
+                                  aria-label={`${floor}階 ${unitNumber}`}
                                   className={["relative h-16 w-full cursor-pointer px-1 py-1 text-left text-[10px] leading-3 transition", BAND_META[cell.band].tile, BAND_META[cell.band].text, BAND_META[cell.band].border, borderWidth, isPicked ? "ring-2 ring-[#d73a49] border-[#d73a49]" : "", crossHighlight ? "shadow-[inset_0_0_0_1px_rgba(47,109,146,0.55)]" : ""].join(" ")}
                                 >
                                   <div className="font-bold">{unitNumber}</div>
@@ -571,6 +599,11 @@ export function TrialPageView() {
                                   <div>{unitArea}</div>
                                   <div>{unitPrice}</div>
                                   <span className="absolute -left-1 -top-1 z-10 rounded-full bg-[#0d1f3f] px-1.5 text-[11px] font-bold text-white">{count}</span>
+                                  {selectedRank ? (
+                                    <span className="absolute -right-1.5 -top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#d73a49] text-base font-extrabold leading-none text-white shadow">
+                                      {selectedRank}
+                                    </span>
+                                  ) : null}
                                 </button>
                               </td>
                             );
@@ -615,31 +648,113 @@ export function TrialPageView() {
                 </div>
                 <button
                   type="button"
-                  onClick={submitTrialSelection}
+                  onClick={addTrialWish}
                   disabled={!selectedRoomCode}
-                  className="mt-3 cursor-pointer rounded-xl border border-[#2f6d92] bg-[#2f6d92] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#255a79] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-3 cursor-pointer rounded-xl border border-[#2f6d92] bg-[#2f6d92] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#255a79] disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300"
                 >
-                  この住戸でお試し希望を送信
+                  選択中住戸を候補に追加/置き換え（最大3件）
                 </button>
+                <p className="mt-2 text-xs text-slate-600">※ お試しは体験専用です。提出や個別チャット入室は、登録・ログイン後に本入力で行えます。</p>
                 <p className="mt-3 rounded-lg border border-[#c9d7e5] bg-[#f4f8fc] px-3 py-2 text-sm font-semibold text-[#2f5f84]">{lastMessage}</p>
                 <div className="mt-3 rounded border border-slate-300 bg-white p-3 text-xs">
-                  <p className="font-semibold text-slate-700">お試し履歴（最新8件）</p>
-                  {history.length > 0 ? (
-                    <ul className="mt-2 space-y-1 text-slate-600">
-                      {history.map((item) => (
-                        <li key={item}>・{item}</li>
+                  <p className="font-semibold text-slate-700">選択候補（最大3件）</p>
+                  <p className="mt-1 text-slate-600">ドラッグ&ドロップで希望順位を並び替えできます。</p>
+                  {trialWishes.length > 0 ? (
+                    <ul className="mt-2 space-y-2">
+                      {trialWishes.map((roomCode, index) => (
+                        <li
+                          key={roomCode}
+                          draggable
+                          onDragStart={() => setDragSourceWishIndex(index)}
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={() => {
+                            if (dragSourceWishIndex === null) return;
+                            moveTrialWish(dragSourceWishIndex, index);
+                            setDragSourceWishIndex(null);
+                          }}
+                          onClick={() => setActiveWishIndex(index)}
+                          className={[
+                            "rounded-lg border bg-slate-50 p-2",
+                            activeWishIndex === index ? "border-[#2f6d92] ring-1 ring-[#2f6d92]" : "border-slate-200",
+                          ].join(" ")}
+                        >
+                          <p className="text-slate-700">第{index + 1}候補: {roomDisplayByCode.get(roomCode) ?? roomCode}</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <Link
+                              href={`/units/chat?rank=${index + 1}&roomCode=${encodeURIComponent(roomCode)}`}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                promptLoginForTrial("個別チャット入室");
+                              }}
+                              className="inline-flex rounded-xl border border-[#2f6d92] bg-[#eef6fc] px-3 py-1.5 font-semibold text-[#1f5a7d] transition hover:bg-[#e1f0fb]"
+                            >
+                              第{index + 1}候補の個別チャットへ
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => removeTrialWish(roomCode)}
+                              className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 transition hover:bg-slate-100"
+                            >
+                              候補から外す
+                            </button>
+                          </div>
+                        </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-2 text-slate-500">まだ履歴はありません。</p>
+                    <p className="mt-2 text-slate-500">まだ候補はありません。住戸を選択して追加してください。</p>
                   )}
+                  <p className="mt-2 text-slate-600">※ お試しでは、個別チャットボタンを押してもログインしないと入れません。</p>
                 </div>
               </aside>
             </div>
           </div>
         </div>
       </section>
+
+      <section className="mt-4 rounded-2xl border border-slate-300 bg-white p-4 shadow-sm">
+        <p className="text-sm font-bold text-slate-900">希望部屋ごとの対話チャット（本番のみ入室可能）</p>
+        <p className="mt-1 text-xs text-slate-600">お試しでは、ログインしないと入室できません。</p>
+               <p className="mt-1 text-xs text-slate-600">お試しでは、自分の部屋の選択しか反映されていません</p>
+        <div className="mt-3">
+          <Link
+            href="/units/chat?scope=global"
+            onClick={(event) => {
+              event.preventDefault();
+              promptLoginForTrial("全体チャット入室");
+            }}
+            className="inline-flex rounded-xl border border-[#2f6d92] bg-[#eef6fc] px-3 py-2 text-sm font-semibold text-[#1f5a7d] transition hover:bg-[#e1f0fb]"
+          >
+            全体チャット（ユーザー同士による使い方相談・質問）に入る
+          </Link>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {Array.from({ length: MAX_TRIAL_WISHES }).map((_, index) => {
+            const roomCode = trialWishes[index] ?? null;
+            if (!roomCode) {
+              return (
+                <div key={`trial-chat-empty-${index}`} className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-slate-500">
+                  第{index + 1}希望チャット（未選択）
+                </div>
+              );
+            }
+            return (
+              <Link
+                key={`trial-chat-${roomCode}-${index}`}
+                href={`/units/chat?rank=${index + 1}&roomCode=${encodeURIComponent(roomCode)}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  promptLoginForTrial("個別チャット入室");
+                }}
+                className="rounded-xl border border-[#2f6d92] bg-[#eef6fc] px-3 py-2 text-[#1f5a7d] transition hover:bg-[#e1f0fb]"
+              >
+                <p>第{index + 1}希望: {roomDisplayByCode.get(roomCode) ?? roomCode}</p>
+                <p className="mt-1 text-xs font-medium text-[#6d1c2a]">希望者数 1人 / 参加者 0人 / 過去ログ 0件</p>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
     </main>
   );
 }
-

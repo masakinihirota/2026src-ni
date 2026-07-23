@@ -349,6 +349,32 @@ export function updateChatDisplayMode(mode: ChatDisplayMode): void {
   window.localStorage.setItem(USER_CHAT_DISPLAY_MODE_STORAGE_KEY, mode);
 }
 
+export function clearStoredUserProfile(): void {
+  if (typeof window === "undefined") return;
+
+  const userId = window.localStorage.getItem(USER_ID_STORAGE_KEY)?.trim() ?? "";
+  if (userId) {
+    window.localStorage.removeItem(aliasKeyOf(userId));
+  }
+
+  const aliasRegistry = loadAliasRegistry();
+  let registryChanged = false;
+  for (const [alias, ownerId] of Object.entries(aliasRegistry)) {
+    if (userId && ownerId === userId) {
+      delete aliasRegistry[alias];
+      registryChanged = true;
+    }
+  }
+  if (registryChanged) {
+    writeAliasRegistry(aliasRegistry);
+  }
+
+  window.localStorage.removeItem(USER_NAME_STORAGE_KEY);
+  window.localStorage.removeItem(USER_CHAT_DISPLAY_MODE_STORAGE_KEY);
+  window.localStorage.removeItem(USER_VERIFICATION_STATUS_STORAGE_KEY);
+  window.localStorage.removeItem(USER_LOGIN_COMPLETE_STORAGE_KEY);
+}
+
 function roomChatDisplayModeKey(roomScope: string): string {
   return `${ROOM_CHAT_DISPLAY_MODE_PREFIX}${roomScope}`;
 }

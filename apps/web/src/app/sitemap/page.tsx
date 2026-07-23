@@ -4,7 +4,7 @@ const PAGE_GROUPS = [
   {
     title: "共通（誰でも利用可能）",
     pages: [
-      { href: "/", label: "トップページ", description: "全体入口。お試し・登録・本入力への導線。" },
+      { href: "/", label: "トップページ（未ログイン向け）", description: "お試し・登録・全体チャットへの導線。" },
       { href: "/trial", label: "お試しページ", description: "本番とは独立した学習用GUI。棟→図面クリックで希望入力を体験。" },
       { href: "/materials", label: "資料一覧（PDF・画像）", description: "PDF資料とスクリーンショット画像を名前付きで確認。" },
       { href: "/sitemap", label: "サイトマップ", description: "この一覧ページ。" },
@@ -19,6 +19,7 @@ const PAGE_GROUPS = [
   {
     title: "登録後の本番利用",
     pages: [
+      { href: "/dashboard", label: "ログイン中トップ", description: "ログイン後に自動遷移する入口。主要機能のショートカットを集約。" },
       { href: "/units", label: "複数希望申込 事前調査ページ", description: "実際の住戸希望を入力（希望1〜3）。" },
       { href: "/units/chat?scope=global", label: "全体調整チャット", description: "全体向け対話チャット。ヘッダーの「チャット」から直接遷移可能。" },
       { href: "/units/chat?rank=1&roomCode=N1-1-1201", label: "部屋別チャット（例）", description: "部屋ごとの対話チャット。ヘッダードロップダウンに3部屋のショートカットを設置。" },

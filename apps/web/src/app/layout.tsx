@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
+import { AppHeaderNav } from "@/components/app-header-nav";
 import { AppHeaderUserBadge } from "@/components/app-header-user-badge";
 import "./globals.css";
 
@@ -32,43 +34,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-slate-50">
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center gap-2 px-4 py-3 text-sm">
+            <Link href="/" className="flex items-center gap-2 rounded-md px-1 py-1 transition hover:bg-slate-100" aria-label="トップページへ移動">
+              <Image src="/images/branding/vns-shield.svg" alt="VNS" width={28} height={28} className="h-7 w-7 object-contain" priority />
+              <span className="text-sm font-semibold text-slate-800">masakinihirota</span>
+            </Link>
             <AppHeaderUserBadge />
-            <Link href="/" className="rounded-full border border-slate-300 bg-white px-3 py-1 font-semibold text-slate-700 transition hover:bg-slate-100">
-              トップ
-            </Link>
-            <Link href="/trial" className="rounded-full border border-slate-300 bg-white px-3 py-1 font-semibold text-slate-700 transition hover:bg-slate-100">
-              お試し
-            </Link>
-            <Link href="/login" className="rounded-full border border-slate-300 bg-white px-3 py-1 font-semibold text-slate-700 transition hover:bg-slate-100">
-              利用開始設定
-            </Link>
-            <Link href="/units" className="rounded-full border border-slate-300 bg-white px-3 py-1 font-semibold text-slate-700 transition hover:bg-slate-100">
-              本入力
-            </Link>
-            <details className="group relative">
-              <summary className="list-none cursor-pointer rounded-full border border-slate-300 bg-white px-3 py-1 font-semibold text-slate-700 transition hover:bg-slate-100">
-                チャット
-              </summary>
-              <div className="absolute left-0 z-20 mt-1 min-w-64 rounded-xl border border-slate-300 bg-white p-2 shadow-lg">
-                <Link href="/units/chat?scope=global" className="block rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
-                  全体調整チャット
-                </Link>
-                <div className="my-1 border-t border-slate-200" />
-                <p className="px-3 py-1 text-xs font-semibold text-slate-500">部屋別チャット（例）</p>
-                <Link href="/units/chat?rank=1&roomCode=N1-1-1201" className="block rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100">
-                  N1-1-1201
-                </Link>
-                <Link href="/units/chat?rank=1&roomCode=N2-2-1210" className="block rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100">
-                  N2-2-1210
-                </Link>
-                <Link href="/units/chat?rank=1&roomCode=S4-6-1233" className="block rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100">
-                  S4-6-1233
-                </Link>
-              </div>
-            </details>
-            <Link href="/sitemap" className="rounded-full border border-[#2f6d92] bg-[#eef6fc] px-3 py-1 font-semibold text-[#1f5a7d] transition hover:bg-[#e1f0fb]">
-              サイトマップ
-            </Link>
+            <AppHeaderNav />
           </div>
         </header>
         {children}

@@ -1,33 +1,60 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
-import {
-  getRoomChatDisplayMode,
-  getStoredUserProfile,
-  setRoomChatDisplayMode,
-} from "@/lib/user-profile";
+import { buildRoomScope } from "@/lib/chat-room-scope";
+import { getRoomChatDisplayMode, setRoomChatDisplayMode } from "@/lib/user-profile";
+import { useStoredUserProfile } from "@/lib/use-stored-user-profile";
+
+type StoredChatMessage = {
+  id: string;
+  roomScope: string;
+  senderId: string;
+  sender: string;
+  body: string;
+  postedAt: string;
+};
 
 type ChatMessage = {
   id: string;
   sender: string;
   body: string;
+  postedAt: string;
   isSelf: boolean;
 };
 
-function seedFrom(input: string): number {
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
-  }
-  return hash;
+type LoadMessagesResponse = {
+  roomScope: string;
+  messages: StoredChatMessage[];
+  participantCount: number;
+  messageCount: number;
+  lastPostedAt: string | null;
+};
+
+type PostMessageResponse = {
+  message: StoredChatMessage;
+  participantCount: number;
+  messageCount: number;
+  lastPostedAt: string | null;
+};
+
+function subscribeStorage(onStoreChange: () => void): () => void {
+  const handler = () => onStoreChange();
+  window.addEventListener("storage", handler);
+  return () => window.removeEventListener("storage", handler);
 }
 
-function buildPeerNames(roomCode: string, rank: number): string[] {
-  const aliases = ["青空の住人", "静風の住人", "月灯りの住人", "木漏れ日の住人", "星雲の住人"];
-  const seed = seedFrom(`${roomCode}-${rank}`);
-  return [0, 1].map((offset) => aliases[(seed + offset) % aliases.length]);
+function formatTimestamp(value: string | null): string {
+  if (!value) return "未更新";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "未更新";
+  return date.toLocaleString("ja-JP", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function UnitsChatPageView({
@@ -40,51 +67,77 @@ export function UnitsChatPageView({
   scope: "room" | "global";
 }) {
   const [draft, setDraft] = useState("");
-  const [userProfile] = useState(() => getStoredUserProfile());
-  const peerNames = useMemo(() => buildPeerNames(roomCode, rank), [roomCode, rank]);
-  const globalPeerNames = ["北街区調整役", "南街区調整役", "運営サポート"];
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [participantCount, setParticipantCount] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
+  const [lastPostedAt, setLastPostedAt] = useState<string | null>(null);
+  const profile = useStoredUserProfile();
   const isGlobal = scope === "global";
-  const roomScope = isGlobal ? "global" : roomCode;
-  const canUseUnitName = userProfile?.verificationStatus === "verified";
-  const [chatDisplayMode, setChatDisplayMode] = useState<"alias" | "unit">(() =>
-    userProfile ? getRoomChatDisplayMode(roomScope, userProfile.verificationStatus) : "alias",
+  const roomScope = useMemo(() => buildRoomScope({ scope, roomCode }), [scope, roomCode]);
+  const canUseUnitName = profile?.verificationStatus === "verified";
+  const chatDisplayMode = useSyncExternalStore(
+    subscribeStorage,
+    () => (profile ? getRoomChatDisplayMode(roomScope, profile.verificationStatus) : "alias"),
+    () => "alias",
   );
+
   const effectiveDisplayMode = canUseUnitName && chatDisplayMode === "unit" ? "unit" : "alias";
-  const selfName = userProfile ? (effectiveDisplayMode === "alias" ? userProfile.zodiacAlias : userProfile.userName) : "あなた";
-  const greetingName = userProfile?.zodiacAlias ?? "あなた";
-  const [messages, setMessages] = useState<ChatMessage[]>(() =>
-    isGlobal
-      ? [
-          {
-            id: "auto-greeting-self-global",
-            sender: greetingName,
-            body: "はじめまして。住戸全体の希望調整について相談したいです。よろしくお願いします。",
-            isSelf: true,
-          },
-          {
-            id: "auto-greeting-peer-global",
-            sender: globalPeerNames[0],
-            body: "参加ありがとうございます。ここでは全体方針や希望重複の調整を行います。",
-            isSelf: false,
-          },
-        ]
-      : roomCode
-      ? [
-          {
-            id: "auto-greeting-self",
-            sender: greetingName,
-            body: `はじめまして。${roomCode}を第${rank}希望にしています。よろしくお願いします。`,
-            isSelf: true,
-          },
-          {
-            id: "auto-greeting-peer",
-            sender: buildPeerNames(roomCode, rank)[0],
-            body: `入室ありがとうございます。私は${roomCode}を優先で希望しています。`,
-            isSelf: false,
-          },
-        ]
-      : [],
+  const selfName = profile ? (effectiveDisplayMode === "alias" ? profile.zodiacAlias : profile.userName) : "あなた";
+
+  const loadMessages = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!profile) return;
+      if (!options?.silent) {
+        setLoadingHistory(true);
+      }
+
+      try {
+        const response = await fetch(`/api/chats/rooms/${encodeURIComponent(roomScope)}/messages`, { cache: "no-store" });
+        const json = (await response.json()) as { success?: boolean; data?: LoadMessagesResponse; error?: { message?: string } };
+        if (!response.ok || !json.success || !json.data) {
+          setHistoryError(json.error?.message ?? "チャット履歴の取得に失敗しました。");
+          return;
+        }
+
+        const nextMessages = json.data.messages.map((message) => ({
+          id: message.id,
+          sender: message.sender,
+          body: message.body,
+          postedAt: message.postedAt,
+          isSelf: message.senderId === profile.userId,
+        }));
+        setMessages(nextMessages);
+        setParticipantCount(json.data.participantCount);
+        setMessageCount(json.data.messageCount);
+        setLastPostedAt(json.data.lastPostedAt);
+        setHistoryError(null);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "通信エラーが発生しました。";
+        setHistoryError(message);
+      } finally {
+        setLoadingHistory(false);
+      }
+    },
+    [profile, roomScope],
   );
+
+  useEffect(() => {
+    if (!profile) return;
+    const bootstrapTimer = window.setTimeout(() => {
+      void loadMessages();
+    }, 0);
+
+    const timer = window.setInterval(() => {
+      void loadMessages({ silent: true });
+    }, 10_000);
+    return () => {
+      window.clearTimeout(bootstrapTimer);
+      window.clearInterval(timer);
+    };
+  }, [profile, loadMessages]);
 
   function requestDisplayModeChange(nextMode: "alias" | "unit"): void {
     if (nextMode === chatDisplayMode) return;
@@ -92,27 +145,56 @@ export function UnitsChatPageView({
     const nextLabel = nextMode === "alias" ? "星座匿名" : "住戸/ユーザー名";
     const confirmed = window.confirm(`表示方式を「${nextLabel}」に変更しますか？`);
     if (!confirmed) return;
-    setChatDisplayMode(nextMode);
     setRoomChatDisplayMode(roomScope, nextMode);
+    window.dispatchEvent(new Event("storage"));
   }
 
-  function sendMessage(): void {
+  async function sendMessage(): Promise<void> {
     const value = draft.trim();
-    if (!value) return;
+    if (!value || !profile || sending) return;
 
-    setMessages((previous) => [
-      ...previous,
-      {
-        id: `self-${previous.length + 1}`,
-        sender: selfName,
-        body: value,
-        isSelf: true,
-      },
-    ]);
-    setDraft("");
+    setSending(true);
+    try {
+      const response = await fetch(`/api/chats/rooms/${encodeURIComponent(roomScope)}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderId: profile.userId,
+          sender: selfName,
+          body: value,
+        }),
+      });
+      const json = (await response.json()) as { success?: boolean; data?: PostMessageResponse; error?: { message?: string } };
+      if (!response.ok || !json.success || !json.data) {
+        setHistoryError(json.error?.message ?? "投稿に失敗しました。");
+        return;
+      }
+
+      const posted = json.data.message;
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: posted.id,
+          sender: posted.sender,
+          body: posted.body,
+          postedAt: posted.postedAt,
+          isSelf: posted.senderId === profile.userId,
+        },
+      ]);
+      setParticipantCount(json.data.participantCount);
+      setMessageCount(json.data.messageCount);
+      setLastPostedAt(json.data.lastPostedAt);
+      setDraft("");
+      setHistoryError(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "通信エラーが発生しました。";
+      setHistoryError(`投稿エラー: ${message}`);
+    } finally {
+      setSending(false);
+    }
   }
 
-  if (!userProfile) {
+  if (!profile) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-8">
         <section className="rounded-2xl border border-slate-300 bg-white p-6 shadow-sm">
@@ -146,9 +228,8 @@ export function UnitsChatPageView({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-sm text-slate-500">希望順位チャット</p>
-            <h1 className="text-xl font-bold text-slate-900">
-              {isGlobal ? "全体調整チャット" : `第${rank}希望 / ${roomCode}`}
-            </h1>
+            <h1 className="text-xl font-bold text-slate-900">{isGlobal ? "全体チャット（使い方相談・質問）" : `${roomCode} の部屋チャット`}</h1>
+            {!isGlobal ? <p className="mt-1 text-xs text-slate-500">あなたの第{rank}希望として開いています。</p> : null}
           </div>
           <Link href="/units" className="inline-flex cursor-pointer rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700">
             住戸選択へ戻る
@@ -156,18 +237,17 @@ export function UnitsChatPageView({
         </div>
 
         <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-          {isGlobal ? `対話相手（全体）: ${globalPeerNames.join(" / ")}` : `対話相手（同順位・同部屋）: ${peerNames.join(" / ")}`}
+          {isGlobal
+            ? "全体チャットは、使い方がわからない方の質問や、全体運用ルール確認のための窓口です。"
+            : "この住戸を希望した参加者（希望順位に関係なく同室）との個別調整に使います。"}
         </div>
-        {!isGlobal ? (
-          <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-700">
-            <p>表示方式はこの部屋チャットで選択できます（同時表示はされません）。</p>
-            <p>入室時の自動挨拶は、常に星座匿名で投稿されます。</p>
-            <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 font-semibold text-amber-800">
-              個人情報を極力使わない運用のため、通常は「星座匿名」で会話してください。
-              「住戸/ユーザー名」表示は最終交渉段階で必要な場合のみ使用してください。
-            </p>
-          </div>
-        ) : null}
+
+        <div className="mt-2 grid gap-2 text-xs text-slate-700 sm:grid-cols-3">
+          <p className="rounded-lg border border-slate-200 bg-white px-3 py-2">会話参加者: {participantCount} 人</p>
+          <p className="rounded-lg border border-slate-200 bg-white px-3 py-2">保存済みメッセージ: {messageCount} 件</p>
+          <p className="rounded-lg border border-slate-200 bg-white px-3 py-2">最終更新: {formatTimestamp(lastPostedAt)}</p>
+        </div>
+
         <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-600">
           <span>あなたの表示名:</span>
           <button
@@ -202,6 +282,12 @@ export function UnitsChatPageView({
         </div>
 
         <div className="mt-4 h-[360px] space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3">
+          {loadingHistory ? <p className="text-sm text-slate-500">履歴を読み込み中です…</p> : null}
+          {!loadingHistory && messages.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              まだ投稿がありません。{isGlobal ? "使い方の質問や相談を投稿してください。" : "希望調整メッセージを投稿してください。"}
+            </p>
+          ) : null}
           {messages.map((message) => (
             <div key={message.id} className={message.isSelf ? "flex justify-end" : "flex justify-start"}>
               <div
@@ -212,10 +298,13 @@ export function UnitsChatPageView({
               >
                 <p className="text-[11px] font-semibold opacity-80">{message.sender}</p>
                 <p className="mt-0.5 whitespace-pre-wrap">{message.body}</p>
+                <p className="mt-1 text-[10px] opacity-70">{formatTimestamp(message.postedAt)}</p>
               </div>
             </div>
           ))}
         </div>
+
+        {historyError ? <p className="mt-2 text-xs font-semibold text-rose-700">{historyError}</p> : null}
 
         <div className="mt-3 flex gap-2">
           <input
@@ -224,18 +313,21 @@ export function UnitsChatPageView({
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                sendMessage();
+                void sendMessage();
               }
             }}
             className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm"
-            placeholder="例: 私はこの部屋を第一希望にしたいです。"
+            placeholder={isGlobal ? "例: この画面の使い方を教えてください。" : "例: 私はこの部屋を第一希望にしたいです。"}
           />
           <button
             type="button"
-            onClick={sendMessage}
-            className="cursor-pointer rounded-xl border border-[#d73a49] bg-[#d73a49] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#c12d3b]"
+            onClick={() => {
+              void sendMessage();
+            }}
+            disabled={sending || !draft.trim()}
+            className="cursor-pointer rounded-xl border border-[#d73a49] bg-[#d73a49] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#c12d3b] disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300"
           >
-            送信
+            {sending ? "送信中..." : "送信"}
           </button>
         </div>
       </section>
